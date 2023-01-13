@@ -25,12 +25,16 @@ var rateLimitStore = {};
 
 function logDebug(site, msg) {
   if (config.debug) {
-    console.log("[DEBUG] "+site.sitename+" - "+msg);
+    console.log("[DEBUG] " + site.sitename+" - "+msg);
   }
 }
 
 function logWarn(site, msg) {
   console.log("[WARN] "+site.sitename+" - "+msg);
+}
+
+function logInfo(site, msg) {
+  console.log("[INFO] "+site.sitename+" - "+msg);
 }
 
 function logError(site, msg, error) {
@@ -192,7 +196,7 @@ function getCsrfToken(site) {
     logDebug(site, "Got CSRF-Token.");
     return true;
   }).catch(function (error) {
-    logDebug(site, "Could not get CSRF-Token: "+ JSON.stringify(error));
+    logError(site, "Could not get CSRF-Token: "+ JSON.stringify(error));
     return true; // continue anyway, maybe this is an older CT selfhosting version
   });
 }
@@ -203,7 +207,7 @@ function getCsrfToken(site) {
  */
 function apiLogin(site) {
   if (site.loginPromise === null) {
-    logDebug(site, "Performing CT API login...");
+    logInfo(site, "Performing CT API login...");
     site.csrftoken = 'foobar';
     site.loginPromise = rp({
       "method": "POST",
@@ -220,12 +224,12 @@ function apiLogin(site) {
       },
     }).then(function (result) {
       if (result.status !== "success") {
-        logDebug(site, "CT API login failed: " + JSON.stringify(result));
+        logError(site, "CT API login failed: " + JSON.stringify(result));
         // clear login promise
         site.loginPromise = null;
         throw new Error(JSON.stringify(result));
       }
-      logDebug(site, "CT API login successful, fetching CSRF-Token...");
+      logInfo(site, "CT API login successful, fetching CSRF-Token...");
       return getCsrfToken(site);
     }).then(function () {
       logDebug(site, "CT API login completed");
@@ -234,7 +238,7 @@ function apiLogin(site) {
       // end gracefully
       return null;
     }).catch(function (error) {
-      logDebug(site, "CT API login failed with exception.");
+      logError(site, "CT API login failed with exception.");
       // clear login promise
       site.loginPromise = null;
       // rethrow error
@@ -281,7 +285,7 @@ function checkRateLimit(site, windowInSeconds, maxRequests) {
  * @param {boolean} [triedLogin] - Is true if this is the second attempt after API login
  */
 function apiPost(site, func, data, triedLogin, triedCSRFUpdate) {
-  logDebug(site, "Performing request to API function "+func);
+  logInfo(site, "Performing request to API function "+func);
   checkRateLimit(site, 60 * 10, site.requests10Minutes? site.requests10Minutes: 100);
   checkRateLimit(site, 60 * 60, site.requests60Minutes? site.requests60Minutes: 200);
   return rp({
@@ -542,28 +546,28 @@ function endSuccess (req, res, next) {
 function authenticate (req, res, next) {
   var site = req.site;
   if (req.dn.equals(site.adminDn)) {
-    logDebug(site, "Admin bind DN: " + req.dn.toString());
+    logInfo(site, "Admin bind DN: " + req.dn.toString());
     // If ldap_password is undefined, try a default ChurchTools authentication with this user
     if (site.ldap_password !== undefined) {
       site.checkPassword(req.credentials, function (result) {
         if (result) {
-          logDebug(site, "Authentication success");
+          logInfo(site, "Authentication success");
           return next();
         } else {
-          logWarn(site, "Invalid root password!");
+          logError(site, "Invalid root password!");
           return next(new ldap.InvalidCredentialsError());
         }
       });
       return;
     }
   } else {
-    logDebug(site, "Bind user DN: " + req.dn);
+    logInfo(site, "Bind user DN: " + req.dn);
   }
   apiPost(site, "authenticate", {
     "user": req.dn.rdns[0].attrs.cn.value,
     "password": req.credentials
   }).then(function () {
-    logDebug(site, "Authentication successful for " + req.dn.toString());
+    logInfo(site, "Authentication successful for " + req.dn.toString());
     return next();
   }).catch(function (error) {
     logError(site, "Authentication error: ", error);
@@ -583,7 +587,7 @@ Object.keys(config.sites).map(function(sitename, index) {
     req.site = config.sites[sitename];
     next();
   }, searchLogging, authorize, function (req, res, next) {
-    logDebug({ sitename: sitename }, "Search for users");
+    logInfo({ sitename: sitename }, "Search for users");
     req.checkAll = req.scope !== "base";
     return next();
   }, requestUsers, sendUsers, endSuccess);
@@ -593,7 +597,7 @@ Object.keys(config.sites).map(function(sitename, index) {
     req.site = config.sites[sitename];
     next();
   }, searchLogging, authorize, function (req, res, next) {
-    logDebug({ sitename: sitename }, "Search for groups");
+    logInfo({ sitename: sitename }, "Search for groups");
     req.checkAll = req.scope !== "base";
     return next();
   }, requestGroups, sendGroups, endSuccess);
@@ -603,7 +607,7 @@ Object.keys(config.sites).map(function(sitename, index) {
     req.site = config.sites[sitename];
     next();
   }, searchLogging, authorize, function (req, res, next) {
-    logDebug({ sitename: sitename }, "Search for users and groups combined");
+    logInfo({ sitename: sitename }, "Search for users and groups combined");
     req.checkAll = req.scope === "sub";
     return next();
   }, requestUsers, requestGroups, sendUsers, sendGroups, endSuccess);
@@ -612,7 +616,7 @@ Object.keys(config.sites).map(function(sitename, index) {
 
 // Search implementation for basic search for Directory Information Tree and the LDAP Root DSE
 server.search('', function (req, res, next) {
-  logDebug({ sitename: req.dn.o }, "empty request, return directory information");
+  logInfo({ sitename: req.dn.o }, "empty request, return directory information");
   var obj = {
     "attributes": {
       "objectClass": ["top", "OpenLDAProotDSE"],
