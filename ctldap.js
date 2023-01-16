@@ -477,8 +477,8 @@ function authorize(req, res, next) {
  * @param {function} next - Next handler function of filter chain
  */
 function searchLogging (req, res, next) {
-  logDebug(req.site, "SEARCH base object: " + req.dn.toString() + " scope: " + req.scope);
-  logDebug(req.site, "Filter: " + req.filter.toString());
+  logInfo(req.site, "SEARCH base object: " + req.dn.toString() + " scope: " + req.scope);
+  logInfo(req.site, "Filter: " + req.filter.toString());
   return next();
 }
 
@@ -587,7 +587,6 @@ Object.keys(config.sites).map(function(sitename, index) {
     req.site = config.sites[sitename];
     next();
   }, searchLogging, authorize, function (req, res, next) {
-    logInfo({ sitename: sitename }, "Search for users");
     req.checkAll = req.scope !== "base";
     return next();
   }, requestUsers, sendUsers, endSuccess);
@@ -597,7 +596,6 @@ Object.keys(config.sites).map(function(sitename, index) {
     req.site = config.sites[sitename];
     next();
   }, searchLogging, authorize, function (req, res, next) {
-    logInfo({ sitename: sitename }, "Search for groups");
     req.checkAll = req.scope !== "base";
     return next();
   }, requestGroups, sendGroups, endSuccess);
