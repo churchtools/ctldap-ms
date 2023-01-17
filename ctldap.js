@@ -272,7 +272,7 @@ function checkRateLimit(site, windowInSeconds, maxRequests) {
   }
   if (rateLimitStore[windowInSeconds][sitename].requestCount > maxRequests) {
     logWarn(site, 'Rate Limit reached');
-    throw new Error('Rate Limit reached for site ' + sitename);
+    throw new Error('Rate Limit reached for site ' + sitename + ' and limit ' + maxRequests + 'in ' + windowInSeconds + 'seconds window');
   }
   rateLimitStore[windowInSeconds][sitename].requestCount++;
 }
