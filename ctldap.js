@@ -4,6 +4,7 @@
 // (c) 2019 André Schild
 // License: GNU/GPL v3.0
 
+const {ExtensibleFilter} = require("ldapjs/lib/filters");
 var ldap = require('ldapjs');
 var fs = require('fs');
 var ini = require('ini');
@@ -637,7 +638,7 @@ function escapeRegExp(str) {
 }
 
 /** Case insensitive search on substring filters */
-ldap.SubstringFilter.prototype.matches = function (target, strictAttrCase) {
+ExtensibleFilter.prototype.matches = function (target, strictAttrCase) {
   var tv = helpers.getAttrValue(target, this.attribute, strictAttrCase);
   if (tv !== undefined && tv !== null) {
     var re = '';
