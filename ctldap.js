@@ -286,8 +286,8 @@ function checkRateLimit(site, windowInSeconds, maxRequests) {
  */
 function apiPost(site, func, data, triedLogin, triedCSRFUpdate) {
   logInfo(site, "Performing request to API function "+func);
-  checkRateLimit(site, 60 * 10, site.requests10Minutes? site.requests10Minutes: 100);
-  checkRateLimit(site, 60 * 60, site.requests60Minutes? site.requests60Minutes: 200);
+  checkRateLimit(site, 60 * 10, site.requests10Minutes? site.requests10Minutes: 150);
+  checkRateLimit(site, 60 * 60, site.requests60Minutes? site.requests60Minutes: 300);
   return rp({
     "method": "POST",
     "jar": site.cookieJar,
